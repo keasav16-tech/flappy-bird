@@ -1,0 +1,5 @@
+{
+  "name": "Flappy GenAI",
+  "description": "A polished Flappy Bird clone featuring Gemini-powered commentary on your performance.",
+  "requestFramePermissions": []
+}
