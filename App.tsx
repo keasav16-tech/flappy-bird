@@ -536,6 +536,13 @@ export default function App() {
   const [customSettings, setCustomSettings] = useState(LEVEL_CONFIGS.CUSTOM);
   const gameConfig = useRef(LEVEL_CONFIGS['EASY']);
 
+  // Update gameConfig when custom settings change
+  useEffect(() => {
+    if (selectedLevel === 'CUSTOM') {
+      gameConfig.current = customSettings;
+    }
+  }, [customSettings, selectedLevel]);
+
   // Game State Refs
   const birdY = useRef(300);
   const birdVelocity = useRef(0);
@@ -621,9 +628,7 @@ export default function App() {
   }
 
   const startGame = () => {
-    if (selectedLevel === 'CUSTOM') {
-      gameConfig.current = customSettings;
-    } else {
+    if (selectedLevel !== 'CUSTOM') {
       gameConfig.current = LEVEL_CONFIGS[selectedLevel];
     }
     resetGame();
