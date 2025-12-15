@@ -9,39 +9,52 @@ const PIPE_WIDTH = 70;
 const BIRD_RADIUS = 24; 
 
 // --- Level Configuration Types ---
-type LevelDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+type LevelDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'CUSTOM';
 
 const LEVEL_CONFIGS: Record<LevelDifficulty, {
   pipeSpeed: number;
   pipeSpawnRate: number;
   pipeGap: number;
   winScore: number;
+  gravity: number;
   label: string;
   color: string;
 }> = {
-  EASY: { 
-      pipeSpeed: 3.0, 
-      pipeSpawnRate: 130, 
-      pipeGap: 200, 
-      winScore: 10, 
+  EASY: {
+      pipeSpeed: 3.0,
+      pipeSpawnRate: 130,
+      pipeGap: 200,
+      winScore: 10,
+      gravity: 0.4,
       label: 'Easy',
       color: '#66bb6a' // Green
   },
-  MEDIUM: { 
-      pipeSpeed: 3.8, 
-      pipeSpawnRate: 110, 
-      pipeGap: 170, 
-      winScore: 10, 
+  MEDIUM: {
+      pipeSpeed: 3.8,
+      pipeSpawnRate: 110,
+      pipeGap: 170,
+      winScore: 10,
+      gravity: 0.45,
       label: 'Medium',
       color: '#ffa726' // Orange
   },
-  HARD: { 
-      pipeSpeed: 5.0, 
-      pipeSpawnRate: 90, 
-      pipeGap: 150, 
-      winScore: 10, 
+  HARD: {
+      pipeSpeed: 5.0,
+      pipeSpawnRate: 90,
+      pipeGap: 150,
+      winScore: 10,
+      gravity: 0.5,
       label: 'Hard',
       color: '#ef5350' // Red
+  },
+  CUSTOM: {
+    pipeSpeed: 3.8,
+    pipeSpawnRate: 110,
+    pipeGap: 170,
+    winScore: 10,
+    gravity: 0.45,
+    label: 'Custom',
+    color: '#00bcd4' // Cyan
   }
 };
 
@@ -462,6 +475,53 @@ const drawFirework = (ctx: CanvasRenderingContext2D, p: Particle) => {
 };
 
 // --- Main Component ---
+const CUSTOM_SETTINGS_CONFIG = {
+  pipeSpeed: { min: 1, max: 10, step: 0.1, label: 'Pipe Speed' },
+  pipeSpawnRate: { min: 50, max: 200, step: 1, label: 'Pipe Spawn Rate' },
+  pipeGap: { min: 100, max: 300, step: 5, label: 'Pipe Gap' },
+  winScore: { min: 5, max: 25, step: 1, label: 'Win Score' },
+  gravity: { min: 0.2, max: 1.0, step: 0.05, label: 'Gravity' },
+};
+
+const CustomizationMenu = ({ settings, setSettings }) => (
+    <div style={{
+        animation: 'popIn 0.3s ease-out',
+        background: 'rgba(0,0,0,0.2)',
+        padding: '1.5rem 2rem',
+        borderRadius: '20px',
+        marginTop: '1.5rem',
+        width: 'clamp(300px, 80%, 450px)',
+        boxSizing: 'border-box',
+        backdropFilter: 'blur(5px)'
+    }}>
+        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: 'white', textAlign: 'center', fontSize: '1.2rem' }}>
+            Custom Difficulty
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+            {Object.keys(settings).filter(k => k in CUSTOM_SETTINGS_CONFIG).map((key) => {
+                const config = CUSTOM_SETTINGS_CONFIG[key];
+                return (
+                    <div key={key}>
+                        <label style={{ color: 'white', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                            <span>{config.label}</span>
+                            <strong>{Number(settings[key]).toFixed(config.step < 1 ? 1 : 0)}</strong>
+                        </label>
+                        <input
+                            type="range"
+                            min={config.min}
+                            max={config.max}
+                            step={config.step}
+                            value={settings[key]}
+                            onChange={e => setSettings(prev => ({...prev, [key]: parseFloat(e.target.value)}))}
+                            style={{ width: '100%', accentColor: LEVEL_CONFIGS.CUSTOM.color }}
+                        />
+                    </div>
+                )
+            })}
+        </div>
+    </div>
+);
+
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -473,7 +533,15 @@ export default function App() {
   
   // Level Management
   const [selectedLevel, setSelectedLevel] = useState<LevelDifficulty>('EASY');
+  const [customSettings, setCustomSettings] = useState(LEVEL_CONFIGS.CUSTOM);
   const gameConfig = useRef(LEVEL_CONFIGS['EASY']);
+
+  // Update gameConfig when custom settings change
+  useEffect(() => {
+    if (selectedLevel === 'CUSTOM') {
+      gameConfig.current = customSettings;
+    }
+  }, [customSettings, selectedLevel]);
 
   // Game State Refs
   const birdY = useRef(300);
@@ -560,7 +628,9 @@ export default function App() {
   }
 
   const startGame = () => {
-    gameConfig.current = LEVEL_CONFIGS[selectedLevel];
+    if (selectedLevel !== 'CUSTOM') {
+      gameConfig.current = LEVEL_CONFIGS[selectedLevel];
+    }
     resetGame();
     setGameState('PLAYING');
     jump();
@@ -618,7 +688,7 @@ export default function App() {
       if (gameState === 'PLAYING') {
         const config = gameConfig.current;
 
-        birdVelocity.current += GRAVITY;
+        birdVelocity.current += config.gravity;
         birdY.current += birdVelocity.current;
         
         // Rotation logic
@@ -958,7 +1028,7 @@ export default function App() {
                       marginBottom: '2rem',
                       backdropFilter: 'blur(4px)'
                   }}>
-                      {(['EASY', 'MEDIUM', 'HARD'] as LevelDifficulty[]).map((level) => (
+                      {(['EASY', 'MEDIUM', 'HARD', 'CUSTOM'] as LevelDifficulty[]).map((level) => (
                           <button
                               key={level}
                               onClick={() => setSelectedLevel(level)}
@@ -981,6 +1051,10 @@ export default function App() {
                           </button>
                       ))}
                   </div>
+
+                  {selectedLevel === 'CUSTOM' && (
+                    <CustomizationMenu settings={customSettings} setSettings={setCustomSettings} />
+                  )}
 
                   <button 
                     onClick={startGame}
